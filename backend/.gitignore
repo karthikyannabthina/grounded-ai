@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+
+# Logs
+*.log
+
+# Build
+dist/
+build/
+
+# Uploaded/generated files
+uploads/
+
+# Generated vector index
+vector-index.json

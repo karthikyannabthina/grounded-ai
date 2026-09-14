@@ -1,0 +1,142 @@
+[
+  {
+    "id": "react-001",
+    "question": "What are React props?",
+    "groundTruth": "Props are inputs passed from a parent component to a child component.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-002",
+    "question": "Explain React components.",
+    "groundTruth": "React components are reusable pieces of UI.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-003",
+    "question": "What is the purpose of props in React?",
+    "groundTruth": "Props allow data to be passed from a parent component to a child component.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-004",
+    "question": "How can React components be combined?",
+    "groundTruth": "React components can be composed together using JSX.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-005",
+    "question": "How does a parent component communicate with a child component in React?",
+    "groundTruth": "A parent component can pass data to a child through props.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-006",
+    "question": "Are React props mutable?",
+    "groundTruth": "Props are immutable inputs passed from a parent to a child component.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-007",
+    "question": "What are reusable pieces of UI called in React?",
+    "groundTruth": "React components are reusable pieces of UI.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-008",
+    "question": "What does JSX allow developers to do when working with React components?",
+    "groundTruth": "JSX allows developers to write HTML-like syntax inside JavaScript.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-009",
+    "question": "What are JS props?",
+    "groundTruth": "Props are values passed from a parent component to a child component.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-010",
+    "question": "What does React use to build user interfaces?",
+    "groundTruth": "React uses reusable components to build user interfaces.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-011",
+    "question": "In React, how is data passed from one component to another?",
+    "groundTruth": "Data can be passed from a parent to a child component through props.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-012",
+    "question": "Can React components be reused throughout an application?",
+    "groundTruth": "Yes, React components are reusable pieces of UI.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-013",
+    "question": "What is the role of JSX in React?",
+    "groundTruth": "JSX provides an HTML-like syntax for describing UI inside JavaScript.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-014",
+    "question": "How do components communicate in React?",
+    "groundTruth": "A parent can communicate data to a child component through props.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "react-015",
+    "question": "What is the difference between a React component and props?",
+    "groundTruth": "A component is a reusable UI building block, while props are values passed into components.",
+    "expectedSources": ["documents/sample.pdf"],
+    "shouldAnswer": true
+  },
+  {
+    "id": "js-001",
+    "question": "How does JavaScript work?",
+    "groundTruth": null,
+    "expectedSources": [],
+    "shouldAnswer": false
+  },
+  {
+    "id": "js-002",
+    "question": "What is the JavaScript event loop?",
+    "groundTruth": null,
+    "expectedSources": [],
+    "shouldAnswer": false
+  },
+  {
+    "id": "node-001",
+    "question": "How does Node.js handle asynchronous operations?",
+    "groundTruth": null,
+    "expectedSources": [],
+    "shouldAnswer": false
+  },
+  {
+    "id": "unknown-001",
+    "question": "What is quantum computing?",
+    "groundTruth": null,
+    "expectedSources": [],
+    "shouldAnswer": false
+  },
+  {
+    "id": "unknown-002",
+    "question": "What is the capital of Japan?",
+    "groundTruth": null,
+    "expectedSources": [],
+    "shouldAnswer": false
+  }
+]
