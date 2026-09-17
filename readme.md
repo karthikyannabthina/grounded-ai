@@ -25,3 +25,197 @@ verification to reduce unsupported answers and hallucinations.
 - 📊 Retrieval and answer evaluation
 - 🏠 Local-first architecture
 - 🆓 No paid OpenAI API required
+
+## 🏗️ Architecture
+
+```text
+                    ┌──────────────────┐
+                    │      User        │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │   Query API      │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                  ┌──────────────────────┐
+                  │ Query Normalization  │
+                  └──────────┬───────────┘
+                             │
+                             ▼
+             ┌────────────────────────────────┐
+             │       Hybrid Retrieval         │
+             │                                │
+             │  Vector Search + BM25 Search   │
+             └───────────────┬────────────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │    Reranker      │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │ Relevance Gate   │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │ Ollama / LLM     │
+                    └────────┬─────────┘
+                             │
+                             ▼
+                ┌──────────────────────────┐
+                │ Answer Grounding Check   │
+                └────────────┬─────────────┘
+                             │
+                             ▼
+                    ┌──────────────────┐
+                    │ Grounded Answer  │
+                    └──────────────────┘
+
+
+
+### Evaluation section
+
+This is especially important because your project has **real evaluation numbers**, not just "it works."
+
+```
+## 📊 Evaluation
+
+Grounded AI includes an evaluation pipeline for measuring retrieval,
+reranking, grounding, and refusal behavior.
+
+| Metric | Result |
+|---|---:|
+| Grounding Accuracy | 86.7% |
+| Refusal Accuracy | 100% |
+| Overall Accuracy | 90.0% |
+| Answer Grounding | 100% |
+| Unsupported Claim Rate | 0% |
+| Recall@5 | 100% |
+| MRR | 1.000 |
+| Reranker Survival | 100% |
+
+### Evaluation Summary
+
+- Retrieval hits: 15/15
+- Reranker hits: 15/15
+- Grounded answers: 13/13
+- Unsupported claims: 0/7
+
+  ## 🛠️ Tech Stack
+
+### Backend
+
+- Node.js
+- TypeScript
+- Express.js
+- Ollama
+- Hugging Face Transformers
+- LangChain
+- BM25
+- PDF parsing
+
+### Retrieval
+
+- Semantic vector retrieval
+- BM25 keyword retrieval
+- Hybrid retrieval
+- Cross-encoder reranking
+- Relevance gating
+
+### Frontend
+
+- React
+- Vite
+
+### Development
+
+- Git
+- GitHub
+- npm
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
+
+git clone https://github.com/karthhikyadav/grounded-ai.git
+cd grounded-ai
+
+### 2. Install backend dependencies
+
+cd backend
+npm install
+
+### 3. Configure environment variables
+
+Copy `.env.example` to `.env` and configure the required values.
+
+### 4. Generate the vector index
+
+npm run ...
+
+### 5. Start the backend
+
+npm run dev
+
+The API will start locally.
+
+### 6. Run evaluation
+
+npm run evaluate
+
+
+## 📁 Project Structure
+
+
+grounded-ai/
+├── backend/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── embeddings/
+│   │   ├── evaluation/
+│   │   ├── ingestion/
+│   │   └── retrieval/
+│   ├── documents/
+│   ├── data/
+│   │   └── evaluation/
+│   ├── uploads/
+│   ├── package.json
+│   └── .env.example
+│
+├── frontend/
+│
+├── .gitignore
+└── README.md
+
+
+And finally:
+
+## 🔮 Future Improvements
+
+- Persistent vector database
+- Streaming answers
+- Source citation UI
+- Document management dashboard
+- Multi-document collections
+- Conversation history
+- Improved evaluation datasets
+- Production deployment
+- Authentication and authorization
+
+## 📌 Project Status
+
+Grounded AI is actively being developed.
+
+The current system includes the core RAG pipeline, hybrid retrieval,
+reranking, relevance gating, answer-grounding verification, and
+automated evaluation.
+
+## 👨‍💻 Author
+
+Karthik Yadav
+
+Built as a production-oriented AI/RAG engineering project.
