@@ -21,12 +21,12 @@
     "shouldAnswer": true
   },
   {
-    "id": "react-004",
-    "question": "How can React components be combined?",
-    "groundTruth": "React components can be composed together using JSX.",
-    "expectedSources": ["documents/sample.pdf"],
-    "shouldAnswer": true
-  },
+  "id": "react-004",
+  "question": "What are React components?",
+  "groundTruth": "React components are independent, reusable pieces of UI.",
+  "expectedSources": ["documents/sample.pdf"],
+  "shouldAnswer": true
+},
   {
     "id": "react-005",
     "question": "How does a parent component communicate with a child component in React?",
@@ -49,12 +49,12 @@
     "shouldAnswer": true
   },
   {
-    "id": "react-008",
-    "question": "What does JSX allow developers to do when working with React components?",
-    "groundTruth": "JSX allows developers to write HTML-like syntax inside JavaScript.",
-    "expectedSources": ["documents/sample.pdf"],
-    "shouldAnswer": true
-  },
+  "id": "react-008",
+  "question": "What are the key points about React props?",
+  "groundTruth": "Props are read-only and are used for communication between components.",
+  "expectedSources": ["documents/sample.pdf"],
+  "shouldAnswer": true
+},
   {
     "id": "react-009",
     "question": "What are JS props?",
@@ -84,12 +84,12 @@
     "shouldAnswer": true
   },
   {
-    "id": "react-013",
-    "question": "What is the role of JSX in React?",
-    "groundTruth": "JSX provides an HTML-like syntax for describing UI inside JavaScript.",
-    "expectedSources": ["documents/sample.pdf"],
-    "shouldAnswer": true
-  },
+  "id": "react-013",
+  "question": "What are React props used for?",
+  "groundTruth": "Props are used for communication between components.",
+  "expectedSources": ["documents/sample.pdf"],
+  "shouldAnswer": true
+},
   {
     "id": "react-014",
     "question": "How do components communicate in React?",

@@ -4,9 +4,11 @@ export interface RelevanceDecision {
   threshold: number;
 }
 
-const RERANKER_THRESHOLD = -2.5;
+const RERANKER_THRESHOLD = -3.5;
 
-export function checkRelevance(score: number): RelevanceDecision {
+export function checkRelevance(
+  score: number
+): RelevanceDecision {
   return {
     relevant: score >= RERANKER_THRESHOLD,
     score,

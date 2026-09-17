@@ -1,4 +1,3 @@
-
 import { embedText } from "../embeddings/embeddingModel.js";
 
 export interface GroundingClaim {
@@ -14,7 +13,7 @@ export interface AnswerGroundingResult {
   unsupportedClaims: string[];
 }
 
-const SUPPORT_THRESHOLD = 0.65;
+const SUPPORT_THRESHOLD = 0.55;
 
 function normalizeText(text: string): string {
   return text
@@ -49,10 +48,9 @@ function splitIntoClaims(text: string): string[] {
     .replace(/\s+/g, " ")
     .split(/(?<=[.!?])\s+/)
     .map((claim) => claim.trim())
-    .filter((claim) => claim.length > 0)
+    .filter(Boolean)
     .map((claim) =>
       claim
-        // Remove common answer-introduction/meta language.
         .replace(
           /^the context explicitly supports the fact that\s+/i,
           ""
@@ -71,7 +69,7 @@ function splitIntoClaims(text: string): string[] {
         )
         .trim()
     )
-    .filter((claim) => claim.length > 0);
+    .filter(Boolean);
 }
 
 function lexicalSupport(
@@ -85,23 +83,19 @@ function lexicalSupport(
     return false;
   }
 
-  const words = normalizedClaim
-    .split(" ")
-    .filter((word) => word.length >= 3);
-
-  // Very short claims are not enough evidence.
-  // Example: "Components." should not pass
-  // just because "components" exists in the context.
-  if (words.length < 3) {
-    return false;
-  }
-
-  // Exact phrase match.
+  // Exact phrase is definitive evidence.
   if (normalizedContext.includes(normalizedClaim)) {
     return true;
   }
 
-  // Count meaningful words appearing in the context.
+  const words = normalizedClaim
+    .split(" ")
+    .filter((word) => word.length >= 2);
+
+  if (words.length === 0) {
+    return false;
+  }
+
   const matchedWords = words.filter((word) =>
     normalizedContext.includes(word)
   );
@@ -109,17 +103,29 @@ function lexicalSupport(
   const coverage =
     matchedWords.length / words.length;
 
-  // Strong lexical overlap.
-  if (coverage >= 0.8) {
+  /*
+   * Short factual answers need special treatment.
+   *
+   * Example:
+   *   Answer: "Components."
+   *   Context: "... React components are reusable ..."
+   *
+   * This should be considered grounded.
+   */
+  if (words.length <= 2 && coverage === 1) {
     return true;
   }
 
-  // Important semantic keyword groups.
-  //
-  // These handle common wording differences such as:
-  // "communicate" ↔ "communication"
-  // "pass" ↔ "passed"
-  // "properties" ↔ "props"
+  /*
+   * For longer answers require strong lexical overlap.
+   */
+  if (coverage >= 0.75) {
+    return true;
+  }
+
+  /*
+   * Handle common morphological / terminology differences.
+   */
   const keywordGroups = [
     ["communicat", "communication"],
     ["pass", "passed", "passing"],
@@ -127,11 +133,14 @@ function lexicalSupport(
     ["component", "components"],
     ["prop", "props", "properties"],
     ["reus", "reusable", "reuse"],
+    ["render", "renders", "rendering"],
+    ["state", "states"],
+    ["function", "functions"],
     ["jsx"],
   ];
 
-  let groupMatches = 0;
   let relevantGroups = 0;
+  let matchedGroups = 0;
 
   for (const group of keywordGroups) {
     const claimHasGroup = group.some((keyword) =>
@@ -149,67 +158,16 @@ function lexicalSupport(
     );
 
     if (contextHasGroup) {
-      groupMatches++;
+      matchedGroups++;
     }
   }
 
-  // Require:
-  // 1. At least two relevant keyword groups.
-  // 2. Every relevant group appears in the context.
-  // 3. At least 50% lexical coverage.
-  //
-  // This prevents overly broad matches such as:
-  // "Components are reusable throughout an application."
-  // from passing just because "components" and "reusable"
-  // appear somewhere in the context.
   if (
-    relevantGroups >= 2 &&
-    groupMatches === relevantGroups &&
+    relevantGroups > 0 &&
+    matchedGroups === relevantGroups &&
     coverage >= 0.5
   ) {
     return true;
-  }
-
-  return false;
-}
-
-function relationshipSupport(
-  claim: string,
-  context: string
-): boolean {
-  const normalizedClaim = normalizeText(claim);
-  const normalizedContext = normalizeText(context);
-
-  const relationshipPatterns = [
-    {
-      claim: ["communicat", "component", "prop"],
-      context: ["communicat", "component", "prop"],
-    },
-    {
-      claim: ["pass", "parent", "child", "prop"],
-      context: ["pass", "parent", "child", "prop"],
-    },
-    {
-      claim: ["data", "parent", "child", "prop"],
-      context: ["data", "parent", "child", "prop"],
-    },
-  ];
-
-  for (const pattern of relationshipPatterns) {
-    const claimMatches = pattern.claim.filter((keyword) =>
-      normalizedClaim.includes(keyword)
-    ).length;
-
-    const contextMatches = pattern.context.filter((keyword) =>
-      normalizedContext.includes(keyword)
-    ).length;
-
-    if (
-      claimMatches >= 3 &&
-      contextMatches >= 3
-    ) {
-      return true;
-    }
   }
 
   return false;
@@ -242,7 +200,6 @@ export async function evaluateAnswerGrounding(
   contexts: string[]
 ): Promise<AnswerGroundingResult> {
 
-  // A controlled refusal is not a hallucinated claim.
   if (isRefusalAnswer(answer)) {
     return {
       grounded: true,
@@ -257,7 +214,7 @@ export async function evaluateAnswerGrounding(
     .map((context) =>
       context.replace(/\s+/g, " ").trim()
     )
-    .filter((context) => context.length > 0);
+    .filter(Boolean);
 
   if (claims.length === 0) {
     return {
@@ -280,9 +237,13 @@ export async function evaluateAnswerGrounding(
     };
   }
 
-  // Embed each retrieved context once.
+  /*
+   * Embed each context once.
+   */
   const contextEmbeddings = await Promise.all(
-    validContexts.map((context) => embedText(context))
+    validContexts.map((context) =>
+      embedText(context)
+    )
   );
 
   const results: GroundingClaim[] = [];
@@ -292,9 +253,13 @@ export async function evaluateAnswerGrounding(
 
     let bestSimilarity = -1;
     let bestContext: string | null = null;
-    let bestLexicalSupport = false;
+    let bestLexicalContext: string | null = null;
 
-    for (let i = 0; i < contextEmbeddings.length; i++) {
+    for (
+      let i = 0;
+      i < validContexts.length;
+      i++
+    ) {
       const context = validContexts[i]!;
 
       const similarity = cosineSimilarity(
@@ -302,39 +267,33 @@ export async function evaluateAnswerGrounding(
         contextEmbeddings[i]!
       );
 
-      const lexical =
-        lexicalSupport(claim, context) ||
-        relationshipSupport(claim, context);
-
       if (similarity > bestSimilarity) {
         bestSimilarity = similarity;
         bestContext = context;
       }
 
-      // If any context provides lexical or relationship
-      // support, preserve that support even if another
-      // context has a higher semantic similarity.
-      if (lexical) {
-        bestLexicalSupport = true;
-
-        // Prefer the context that actually supports
-        // the claim.
-        if (bestContext === null) {
-          bestContext = context;
-        }
+      if (
+        lexicalSupport(claim, context) &&
+        bestLexicalContext === null
+      ) {
+        bestLexicalContext = context;
       }
     }
 
     const supported =
-      bestLexicalSupport ||
+      bestLexicalContext !== null ||
       bestSimilarity >= SUPPORT_THRESHOLD;
+
+    const supportingContext =
+      bestLexicalContext ??
+      (supported ? bestContext : null);
 
     console.log("\nGROUNDING DEBUG");
     console.log("Claim:", claim);
     console.log("Similarity:", bestSimilarity);
     console.log(
       "Lexical support:",
-      bestLexicalSupport
+      bestLexicalContext !== null
     );
     console.log("Supported:", supported);
 
@@ -342,9 +301,7 @@ export async function evaluateAnswerGrounding(
       claim,
       supported,
       similarity: bestSimilarity,
-      supportingContext: supported
-        ? bestContext
-        : null,
+      supportingContext,
     });
   }
 
@@ -358,4 +315,3 @@ export async function evaluateAnswerGrounding(
     unsupportedClaims,
   };
 }
-

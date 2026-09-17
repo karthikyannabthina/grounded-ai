@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx src/api/server.ts",
-"evaluate": "tsx src/evaluation/evaluate.ts",
+    "evaluate": "tsx src/evaluation/evaluate.ts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [],
@@ -16,7 +16,6 @@
     "@huggingface/transformers": "^3.8.1",
     "@langchain/community": "^1.1.29",
     "@langchain/core": "^1.2.11",
-    "@langchain/openai": "^1.5.13",
     "cheerio": "^1.2.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",

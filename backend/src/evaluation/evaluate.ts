@@ -1,3 +1,4 @@
+
 import { readFile } from "fs/promises";
 
 import { getHybridRetriever } from "../retrieval/vectorStoreManager.js";
@@ -17,30 +18,23 @@ interface EvaluationCase {
 interface EvaluationResult {
   id: string;
   question: string;
-
   shouldAnswer: boolean;
-  grounded: boolean;
-
+  relevancePassed: boolean;
   relevanceScore: number;
   threshold: number;
-
   retrievedCount: number;
   rerankedCount: number;
-
   topSource: string | null;
-
   expectedSources: string[];
   expectedSourceFound: boolean;
   expectedSourceRank: number | null;
-
   rerankerSurvived: boolean;
   rerankerRank: number | null;
-
   answer: string;
-
   answerGrounded: boolean | null;
   unsupportedClaims: string[];
   groundingClaims: number;
+  answerCorrect: boolean;
 }
 
 const DATASET_PATH = "data/evaluation/dataset.json";
@@ -64,9 +58,14 @@ function normalizeQuery(query: string): string {
 }
 
 async function loadDataset(): Promise<EvaluationCase[]> {
-  const data = await readFile(DATASET_PATH, "utf-8");
+  const data = await readFile(
+    DATASET_PATH,
+    "utf-8"
+  );
 
-  return JSON.parse(data) as EvaluationCase[];
+  return JSON.parse(
+    data
+  ) as EvaluationCase[];
 }
 
 function normalizeSource(source: string): string {
@@ -81,47 +80,67 @@ function sourceMatches(
   actualSource: string | undefined,
   expectedSources: string[]
 ): boolean {
-  if (!actualSource || expectedSources.length === 0) {
+  if (
+    !actualSource ||
+    expectedSources.length === 0
+  ) {
     return false;
   }
 
-  const normalizedActual = normalizeSource(actualSource);
+  const normalizedActual =
+    normalizeSource(actualSource);
 
   return expectedSources.some((expected) => {
-    const normalizedExpected = normalizeSource(expected);
+    const normalizedExpected =
+      normalizeSource(expected);
 
     return (
       normalizedActual === normalizedExpected ||
-      normalizedActual.endsWith(`/${normalizedExpected}`) ||
-      normalizedExpected.endsWith(`/${normalizedActual}`)
+      normalizedActual.endsWith(
+        `/${normalizedExpected}`
+      ) ||
+      normalizedExpected.endsWith(
+        `/${normalizedActual}`
+      )
     );
   });
+}
+
+function isRefusal(answer: string): boolean {
+  return (
+    answer.trim().toLowerCase() ===
+    REFUSAL.toLowerCase()
+  );
 }
 
 async function evaluateCase(
   testCase: EvaluationCase
 ): Promise<EvaluationResult> {
-  const retriever = await getHybridRetriever();
+  const retriever =
+    await getHybridRetriever();
 
-  const normalizedQuery = normalizeQuery(
-    testCase.question
-  );
+  const normalizedQuery =
+    normalizeQuery(testCase.question);
 
-  const hybridResults = await retriever.search(
-    normalizedQuery,
-    TOP_K_RETRIEVAL,
-    VECTOR_WEIGHT,
-    BM25_WEIGHT
-  );
+  const hybridResults =
+    await retriever.search(
+      normalizedQuery,
+      TOP_K_RETRIEVAL,
+      VECTOR_WEIGHT,
+      BM25_WEIGHT
+    );
 
-  let expectedSourceRank: number | null = null;
+  let expectedSourceRank:
+    | number
+    | null = null;
 
   for (
     let index = 0;
     index < hybridResults.length;
     index++
   ) {
-    const result = hybridResults[index];
+    const result =
+      hybridResults[index];
 
     if (!result) {
       continue;
@@ -139,7 +158,9 @@ async function evaluateCase(
         testCase.expectedSources
       )
     ) {
-      expectedSourceRank = index + 1;
+      expectedSourceRank =
+        index + 1;
+
       break;
     }
   }
@@ -147,15 +168,19 @@ async function evaluateCase(
   const expectedSourceFound =
     expectedSourceRank !== null;
 
-  const rerankedResults = await rerank(
-    normalizedQuery,
-    hybridResults.map(
-      (result) => result.document.text
-    ),
-    TOP_K_RERANK
-  );
+  const rerankedResults =
+    await rerank(
+      normalizedQuery,
+      hybridResults.map(
+        (result) =>
+          result.document.text
+      ),
+      TOP_K_RERANK
+    );
 
-  let rerankerRank: number | null = null;
+  let rerankerRank:
+    | number
+    | null = null;
 
   for (
     let index = 0;
@@ -191,7 +216,9 @@ async function evaluateCase(
         testCase.expectedSources
       )
     ) {
-      rerankerRank = index + 1;
+      rerankerRank =
+        index + 1;
+
       break;
     }
   }
@@ -205,59 +232,99 @@ async function evaluateCase(
   const relevance =
     checkRelevance(topScore);
 
-  if (!relevance.relevant) {
+  const relevancePassed =
+    relevance.relevant;
+
+  if (!relevancePassed) {
     return {
       id: testCase.id,
       question: testCase.question,
-
       shouldAnswer: testCase.shouldAnswer,
-      grounded: false,
-
+      relevancePassed: false,
       relevanceScore: topScore,
       threshold: relevance.threshold,
-
-      retrievedCount: hybridResults.length,
-      rerankedCount: rerankedResults.length,
-
+      retrievedCount:
+        hybridResults.length,
+      rerankedCount:
+        rerankedResults.length,
       topSource: null,
-
       expectedSources:
         testCase.expectedSources,
-
       expectedSourceFound,
       expectedSourceRank,
-
       rerankerSurvived,
       rerankerRank,
-
       answer: REFUSAL,
-
       answerGrounded: null,
       unsupportedClaims: [],
       groundingClaims: 0,
+      answerCorrect:
+        !testCase.shouldAnswer,
     };
   }
 
-  const contexts = rerankedResults.map(
-    (result) => result.document
+  const contexts =
+    rerankedResults.map(
+      (result) =>
+        result.document
+    );
+
+  console.log(
+    "\n========== RETRIEVED CONTEXT =========="
   );
 
-  console.log("\n========== RETRIEVED CONTEXT ==========");
-  console.log("Question:", testCase.question);
-
-  contexts.forEach((context, index) => {
-    console.log(`\n--- Context ${index + 1} ---`);
-    console.log(context);
-  });
-
-  console.log("========================================\n");
-
-  const context = contexts.join("\n\n");
-
-  let answer = await generateAnswer(
-    testCase.question,
-    context
+  console.log(
+    "Question:",
+    testCase.question
   );
+
+  contexts.forEach(
+    (context, index) => {
+      console.log(
+        `\n--- Context ${index + 1} ---`
+      );
+
+      console.log(context);
+    }
+  );
+
+  console.log(
+    "========================================\n"
+  );
+
+  const context =
+    contexts.join("\n\n");
+
+  let answer =
+    await generateAnswer(
+      testCase.question,
+      context
+    );
+
+  if (
+    testCase.shouldAnswer &&
+    isRefusal(answer)
+  ) {
+    const focusedContext =
+      contexts[0];
+
+    if (focusedContext) {
+      console.log(
+        "Answerable question was refused."
+      );
+
+      console.log(
+        "Retrying with focused top-ranked evidence..."
+      );
+
+      answer =
+        await generateAnswer(
+          testCase.question,
+          focusedContext,
+          true
+        );
+    }
+  }
 
   let answerGrounding =
     await evaluateAnswerGrounding(
@@ -265,36 +332,50 @@ async function evaluateCase(
       contexts
     );
 
-  if (!answerGrounding.grounded) {
-    console.log(
-      "Initial answer failed grounding. Retrying..."
-    );
+  if (
+    !isRefusal(answer) &&
+    !answerGrounding.grounded
+  ) {
+    const focusedContext =
+      contexts[0];
 
-    answer = await generateAnswer(
-      testCase.question,
-      context,
-      true
-    );
-
-    answerGrounding =
-      await evaluateAnswerGrounding(
-        answer,
-        contexts
+    if (focusedContext) {
+      console.log(
+        "Initial answer failed grounding."
       );
+
+      console.log(
+        "Retrying with focused top-ranked evidence..."
+      );
+
+      answer =
+        await generateAnswer(
+          testCase.question,
+          focusedContext,
+          true
+        );
+
+      answerGrounding =
+        await evaluateAnswerGrounding(
+          answer,
+          contexts
+        );
+    }
   }
 
-  if (!answerGrounding.grounded) {
+  if (
+    !isRefusal(answer) &&
+    !answerGrounding.grounded
+  ) {
     console.log(
-      "Retry also failed grounding. Returning refusal."
+      "Retry also failed grounding."
+    );
+
+    console.log(
+      "Returning refusal."
     );
 
     answer = REFUSAL;
-
-    answerGrounding = {
-      grounded: true,
-      claims: [],
-      unsupportedClaims: [],
-    };
   }
 
   const topRerankedText =
@@ -310,53 +391,74 @@ async function evaluateCase(
       : undefined;
 
   const topSource =
-    typeof topDocument?.document.metadata
-      ?.source === "string"
+    typeof topDocument?.document.metadata?.source ===
+    "string"
       ? topDocument.document.metadata.source
       : null;
+
+  const refused =
+    isRefusal(answer);
+
+  const answerCorrect =
+    testCase.shouldAnswer
+      ? !refused
+      : refused;
 
   return {
     id: testCase.id,
     question: testCase.question,
-
-    shouldAnswer: testCase.shouldAnswer,
-    grounded: true,
-
+    shouldAnswer:
+      testCase.shouldAnswer,
+    relevancePassed,
     relevanceScore: topScore,
     threshold: relevance.threshold,
-
-    retrievedCount: hybridResults.length,
-    rerankedCount: rerankedResults.length,
-
+    retrievedCount:
+      hybridResults.length,
+    rerankedCount:
+      rerankedResults.length,
     topSource,
-
     expectedSources:
       testCase.expectedSources,
-
     expectedSourceFound,
     expectedSourceRank,
-
     rerankerSurvived,
     rerankerRank,
-
     answer,
-
-    answerGrounded: answerGrounding.grounded,
+    answerGrounded:
+      refused
+        ? null
+        : answerGrounding.grounded,
     unsupportedClaims:
-      answerGrounding.unsupportedClaims,
+      refused
+        ? []
+        : answerGrounding.unsupportedClaims,
     groundingClaims:
-      answerGrounding.claims.length,
+      refused
+        ? 0
+        : answerGrounding.claims.length,
+    answerCorrect,
   };
 }
 
 async function main() {
   console.log("");
-  console.log("=================================");
-  console.log("       GROUNDED AI EVALUATION");
-  console.log("=================================");
+
+  console.log(
+    "================================="
+  );
+
+  console.log(
+    "       GROUNDED AI EVALUATION"
+  );
+
+  console.log(
+    "================================="
+  );
+
   console.log("");
 
-  const dataset = await loadDataset();
+  const dataset =
+    await loadDataset();
 
   console.log(
     `Dataset: ${dataset.length} questions`
@@ -364,16 +466,21 @@ async function main() {
 
   console.log("");
 
-  const results: EvaluationResult[] = [];
+  const results:
+    EvaluationResult[] = [];
 
-  for (const testCase of dataset) {
+  for (
+    const testCase of dataset
+  ) {
     console.log(
       `Evaluating ${testCase.id}...`
     );
 
     try {
       const result =
-        await evaluateCase(testCase);
+        await evaluateCase(
+          testCase
+        );
 
       results.push(result);
     } catch (error) {
@@ -384,38 +491,33 @@ async function main() {
     }
   }
 
-  let correctGrounding = 0;
-  let correctRefusals = 0;
-
-  for (const result of results) {
-    if (
-      result.shouldAnswer &&
-      result.grounded
-    ) {
-      correctGrounding++;
-    }
-
-    if (
-      !result.shouldAnswer &&
-      !result.grounded
-    ) {
-      correctRefusals++;
-    }
-  }
-
   const answerableResults =
     results.filter(
-      (result) => result.shouldAnswer
+      (result) =>
+        result.shouldAnswer
     );
 
   const refusalResults =
     results.filter(
-      (result) => !result.shouldAnswer
+      (result) =>
+        !result.shouldAnswer
     );
 
-  const groundingAccuracy =
+  const correctAnswerable =
+    answerableResults.filter(
+      (result) =>
+        result.answerCorrect
+    ).length;
+
+  const correctRefusals =
+    refusalResults.filter(
+      (result) =>
+        result.answerCorrect
+    ).length;
+
+  const answerableAccuracy =
     answerableResults.length > 0
-      ? correctGrounding /
+      ? correctAnswerable /
         answerableResults.length
       : 0;
 
@@ -427,14 +529,17 @@ async function main() {
 
   const overallAccuracy =
     results.length > 0
-      ? (correctGrounding +
-          correctRefusals) /
+      ? results.filter(
+          (result) =>
+            result.answerCorrect
+        ).length /
         results.length
       : 0;
 
   const generatedAnswerResults =
     answerableResults.filter(
       (result) =>
+        !isRefusal(result.answer) &&
         result.answerGrounded !== null
     );
 
@@ -453,7 +558,8 @@ async function main() {
   const totalClaims =
     generatedAnswerResults.reduce(
       (sum, result) =>
-        sum + result.groundingClaims,
+        sum +
+        result.groundingClaims,
       0
     );
 
@@ -485,12 +591,15 @@ async function main() {
 
   let reciprocalRankSum = 0;
 
-  for (const result of answerableResults) {
+  for (
+    const result of answerableResults
+  ) {
     if (
       result.expectedSourceRank !== null
     ) {
       reciprocalRankSum +=
-        1 / result.expectedSourceRank;
+        1 /
+        result.expectedSourceRank;
     }
   }
 
@@ -519,15 +628,22 @@ async function main() {
       : 0;
 
   console.log("");
-  console.log(
-    "================================="
-  );
-  console.log("RESULTS");
+
   console.log(
     "================================="
   );
 
-  for (const result of results) {
+  console.log(
+    "RESULTS"
+  );
+
+  console.log(
+    "================================="
+  );
+
+  for (
+    const result of results
+  ) {
     console.log("");
 
     console.log(
@@ -535,36 +651,62 @@ async function main() {
     );
 
     console.log(
+      `  Answerable: ${
+        result.shouldAnswer
+          ? "YES"
+          : "NO"
+      }`
+    );
+
+    console.log(
+      `  Answer correct: ${
+        result.answerCorrect
+          ? "YES"
+          : "NO"
+      }`
+    );
+
+    console.log(
       `  Relevance gate: ${
-        result.grounded
+        result.relevancePassed
           ? "PASS"
           : "FAIL"
       }`
     );
 
     console.log(
-      `  Score: ${result.relevanceScore}`
+      `  Score: ${
+        result.relevanceScore
+      }`
     );
 
     console.log(
-      `  Retrieved: ${result.retrievedCount}`
+      `  Retrieved: ${
+        result.retrievedCount
+      }`
     );
 
     console.log(
-      `  Reranked: ${result.rerankedCount}`
+      `  Reranked: ${
+        result.rerankedCount
+      }`
     );
 
     console.log(
       `  Source: ${
-        result.topSource ?? "None"
+        result.topSource ??
+        "None"
       }`
     );
 
-    if (result.shouldAnswer) {
+    if (
+      result.shouldAnswer
+    ) {
       console.log(
         `  Expected source: ${
-          result.expectedSources.join(", ") ||
-          "None"
+          result.expectedSources.join(
+            ", "
+          ) || "None"
         }`
       );
 
@@ -578,7 +720,8 @@ async function main() {
 
       console.log(
         `  Expected source rank: ${
-          result.expectedSourceRank ?? "-"
+          result.expectedSourceRank ??
+          "-"
         }`
       );
 
@@ -592,7 +735,8 @@ async function main() {
 
       console.log(
         `  Reranker rank: ${
-          result.rerankerRank ?? "-"
+          result.rerankerRank ??
+          "-"
         }`
       );
 
@@ -613,7 +757,8 @@ async function main() {
       );
 
       if (
-        result.unsupportedClaims.length > 0
+        result.unsupportedClaims.length >
+        0
       ) {
         console.log(
           `  Unsupported claims: ${
@@ -626,71 +771,94 @@ async function main() {
     }
 
     console.log(
-      `  Answer: ${result.answer}`
+      `  Answer: ${
+        result.answer
+      }`
     );
   }
 
   console.log("");
-  console.log(
-    "================================="
-  );
-  console.log("METRICS");
+
   console.log(
     "================================="
   );
 
   console.log(
-    `Grounding accuracy:      ${(groundingAccuracy * 100).toFixed(1)}%`
+    "METRICS"
   );
 
   console.log(
-    `Refusal accuracy:        ${(refusalAccuracy * 100).toFixed(1)}%`
+    "================================="
   );
 
   console.log(
-    `Overall accuracy:        ${(overallAccuracy * 100).toFixed(1)}%`
-  );
-
-  console.log("");
-
-  console.log(
-    `Answer grounding:       ${(answerGroundingAccuracy * 100).toFixed(1)}%`
+    `Answerable accuracy:     ${(
+      answerableAccuracy * 100
+    ).toFixed(1)}%`
   );
 
   console.log(
-    `Unsupported claim rate:  ${(unsupportedClaimRate * 100).toFixed(1)}%`
-  );
-
-  console.log("");
-
-  console.log(
-    `Recall@5:               ${(recallAt5 * 100).toFixed(1)}%`
+    `Refusal accuracy:        ${(
+      refusalAccuracy * 100
+    ).toFixed(1)}%`
   );
 
   console.log(
-    `MRR:                    ${mrr.toFixed(3)}`
-  );
-
-  console.log(
-    `Reranker survival:      ${(rerankerSurvival * 100).toFixed(1)}%`
+    `Overall accuracy:        ${(
+      overallAccuracy * 100
+    ).toFixed(1)}%`
   );
 
   console.log("");
 
   console.log(
-    `Retrieval hits:         ${retrievalHits}/${answerableResults.length}`
+    `Answer grounding:        ${(
+      answerGroundingAccuracy * 100
+    ).toFixed(1)}%`
   );
 
   console.log(
-    `Reranker hits:          ${rerankerHits}/${rerankerEligible.length}`
+    `Unsupported claim rate:  ${(
+      unsupportedClaimRate * 100
+    ).toFixed(1)}%`
+  );
+
+  console.log("");
+
+  console.log(
+    `Recall@5:                ${(
+      recallAt5 * 100
+    ).toFixed(1)}%`
   );
 
   console.log(
-    `Grounded answers:       ${groundedAnswers}/${generatedAnswerResults.length}`
+    `MRR:                     ${mrr.toFixed(
+      3
+    )}`
   );
 
   console.log(
-    `Unsupported claims:     ${totalUnsupportedClaims}/${totalClaims}`
+    `Reranker survival:       ${(
+      rerankerSurvival * 100
+    ).toFixed(1)}%`
+  );
+
+  console.log("");
+
+  console.log(
+    `Retrieval hits:          ${retrievalHits}/${answerableResults.length}`
+  );
+
+  console.log(
+    `Reranker hits:            ${rerankerHits}/${rerankerEligible.length}`
+  );
+
+  console.log(
+    `Grounded answers:        ${groundedAnswers}/${generatedAnswerResults.length}`
+  );
+
+  console.log(
+    `Unsupported claims:      ${totalUnsupportedClaims}/${totalClaims}`
   );
 
   console.log("");

@@ -19,7 +19,7 @@ import webRouter from "./web.js";
 
 const app = express();
 
-const PORT = 5000;
+const PORT = Number(process.env.PORT) || 5000;
 
 const VECTOR_WEIGHT = 0.6;
 const BM25_WEIGHT = 0.4;
@@ -672,6 +672,6 @@ app.post("/api/chat/stream", async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(
-    `Grounded AI API running on http://localhost:${PORT}`
+    `Grounded AI API running on port ${PORT}`
   );
 });
