@@ -1,5 +1,7 @@
-const OLLAMA_URL = "http://localhost:11434/api/generate";
-const OLLAMA_MODEL = "llama3.2:3b";
+import "dotenv/config";
+
+const OLLAMA_URL = "https://ollama.com/api/generate";
+const OLLAMA_MODEL = "gpt-oss:20b";
 
 const REFUSAL =
   "I don't have enough information in the uploaded documents to answer that question.";
@@ -134,6 +136,18 @@ ANSWER:
 `;
 }
 
+function getApiKey(): string {
+  const apiKey = process.env.OLLAMA_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      "OLLAMA_API_KEY environment variable is not configured"
+    );
+  }
+
+  return apiKey;
+}
+
 export async function generateAnswer(
   question: string,
   context: string,
@@ -150,6 +164,7 @@ export async function generateAnswer(
 
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${getApiKey()}`,
     },
 
     body: JSON.stringify({
@@ -202,6 +217,7 @@ export async function streamAnswer(
 
     headers: {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${getApiKey()}`,
     },
 
     body: JSON.stringify({
@@ -269,7 +285,6 @@ export async function streamAnswer(
             onToken(data.response);
           }
         } catch {
-          // Ignore incomplete JSON lines.
         }
       }
     }
@@ -284,10 +299,10 @@ export async function streamAnswer(
           onToken(data.response);
         }
       } catch {
-        // Ignore incomplete final JSON.
       }
     }
   } finally {
     reader.releaseLock();
   }
 }
+

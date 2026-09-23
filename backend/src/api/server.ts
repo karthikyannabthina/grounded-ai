@@ -673,5 +673,5 @@ app.post("/api/chat/stream", async (req, res) => {
 app.listen(PORT, () => {
   console.log(
     `Grounded AI API running on port ${PORT}`
-  );
+  ); 
 });
